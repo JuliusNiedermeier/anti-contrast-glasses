@@ -60,7 +60,7 @@ void setup() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_GRAYSCALE;
 
-  config.frame_size = FRAMESIZE_96X96;
+  config.frame_size = FRAMESIZE_QQVGA;
   config.jpeg_quality = 10;
   config.fb_count = 1;
 
@@ -72,10 +72,11 @@ void setup() {
   }
 
   sensor_t *cam_sensor = esp_camera_sensor_get();
-  cam_sensor->set_framesize(cam_sensor, FRAMESIZE_96X96);
+  cam_sensor->set_framesize(cam_sensor, FRAMESIZE_QQVGA);
   cam_sensor->set_vflip(cam_sensor, 0);
 
   tft.initR(INITR_BLACKTAB);
+  tft.setRotation(3);
   tft.fillScreen(ST77XX_BLACK);
 }
 
@@ -88,24 +89,19 @@ void loop() {
     Serial.println("Camera capture failed");
   }
 
-  int y = -1;
+  int width = frame_buffer->width;
+  int height = frame_buffer->height;
+  uint8_t *image_pointer = frame_buffer->buf;
+  uint16_t color;
 
-  for (int i = 0; i < frame_buffer->len; i += 3) {
-    word color = ConvertRGB(frame_buffer->buf[i], frame_buffer->buf[i], frame_buffer->buf[i]);
-
-    int px_num = i / 3;
-
-    if (px_num % 96 == 0) { y++; }
-    
-    int x = px_num - 96 * y;
-
-    tft.drawPixel(x, y, color);
+  for (int y = 0; y < height; y++) {
+    for(int x = 0; x < width; x++) {
+      uint8_t pixel = *image_pointer;
+      color = tft.color565(pixel, pixel, pixel);
+      tft.drawPixel(x, y, color);
+      image_pointer += 1;
+    }
   }
-
-
-
-  // Draw frame_buffer to display
-  // fex.drawJpg((const uint8_t *)frame_buffer->buf, frame_buffer->len, 0, 6);
 
   esp_camera_fb_return(frame_buffer);
 }
